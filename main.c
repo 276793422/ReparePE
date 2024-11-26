@@ -54,7 +54,7 @@ BOOL __SetFileContent(LPCSTR lpszFilePath, const void *lpData, int iSize)
 	HANDLE hFile = CreateFileA(lpszFilePath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile != INVALID_HANDLE_VALUE)
 	{
-		WriteFile(hFile, lpData, iSize > 0 ? iSize : strlen((char*)lpData), &dwBytesWritten, NULL);
+		WriteFile(hFile, lpData, iSize > 0 ? iSize : (DWORD)strlen((char*)lpData), &dwBytesWritten, NULL);
 		CloseHandle(hFile);
 	}
 	return TRUE;
@@ -97,8 +97,12 @@ BOOL ReversRebase(char *pOutFileBuf, char *svbase)
 	DWORD *dwRebaseAddr;
 	WORD *pRel;
 	
-	DWORD dwBase = (DWORD)strtoul(svbase, NULL, 16);
+	ULONGLONG dwBase = (ULONGLONG)strtoull(svbase, NULL, 16);
 	DWORD dwRebaseDelta = (DWORD)(dwBase - pNTHeader->OptionalHeader.ImageBase);
+	if (dwRebaseDelta == 0)
+	{
+		return TRUE;
+	}
 	PIMAGE_DATA_DIRECTORY pRebaseDirectory = (PIMAGE_DATA_DIRECTORY)&pNTHeader->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
 	if (pRebaseDirectory->Size > 0)
 	{
@@ -117,7 +121,7 @@ BOOL ReversRebase(char *pOutFileBuf, char *svbase)
 			pImgBaseReloc = (PIMAGE_BASE_RELOCATION)((char*)pImgBaseReloc + pImgBaseReloc->SizeOfBlock);
 		}
 	}
-	return 0;
+	return TRUE;
 }
 
 BOOL ReversFile(char *pRealFileBuf, char *pOutFileBuf)
